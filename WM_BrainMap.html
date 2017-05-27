@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>Working memory across the cortex</title>
-  <script type="text/javascript" src="d3/d3.v3.js"></script>
+  <script type="text/javascript" src="d3/d3.js"></script>
   <style type="text/css">
 
   /*polygon {
@@ -18,20 +18,10 @@
 </head>
 
 <body>
+  <img id='foo' src="FlatBrainLateralMedialNoAI.svg"></img>
   <script type="text/javascript">
 
-  var brainMapDiv = d3.selectAll("body")
-  .append("div");
-
-  d3.xml("FlatBrainLateralMedialNoAI.svg", function(error, documentFragment) {
-    if (error) {console.log(error); return;}
-
-    var svgNode = documentFragment
-    .getElementsByTagName("svg")[0];
-
-    brainMapDiv.node().appendChild(svgNode);
-
-    window.brainMapSVG = brainMapDiv.selectAll("svg") ;
+    var brainMapSVG = d3.selectAll('svg');
 
     // Change color of area on mouseover. Area might be represented in multiple
     // polygons within a single group, thus behavior should be applied to all
@@ -55,7 +45,6 @@
           .duration(250)
           .attr("fill", "#C4C4C4");
     });
-  });
 
   </script>
 </body>
