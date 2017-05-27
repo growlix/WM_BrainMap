@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>D3 Page Template</title>
+  <script type="text/javascript" src="d3/d3.v3.js"></script>
+  <style type="text/css">
+
+  /*polygon {
+    fill: blue ;
+    stroke: green ;
+  }*/
+  /*polygon:hover {
+    fill: orange;
+  }*/
+
+</style>
+</head>
+
+<body>
+  <script type="text/javascript">
+
+  var brainMapDiv = d3.selectAll("body")
+  .append("div");
+
+  // var brainMapSVG ;
+
+  d3.xml("FlatBrainLateralMedialNoAI.svg", function(error, documentFragment) {
+    if (error) {console.log(error); return;}
+
+    var svgNode = documentFragment
+    .getElementsByTagName("svg")[0];
+
+    brainMapDiv.node().appendChild(svgNode);
+
+    window.brainMapSVG = brainMapDiv.selectAll("svg") ;
+
+    brainMapSVG.selectAll("g")
+    .selectAll("polygon")
+    .on("mouseover", function() {
+      d3.select(this)
+      .attr("fill", "blue");
+    })
+    .on("mouseout", function(d) {
+      d3.select(this)
+      .transition()
+      .duration(250)
+      .attr("fill", "white");
+    });
+  });
+
+
+
+
+
+  // Your beautiful D3 code will go here
+  </script>
+</body>
+</html>
