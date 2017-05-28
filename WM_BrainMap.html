@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8">
   <title>Working memory across the cortex</title>
-  <script type="text/javascript" src="d3/d3.v3.js"></script>
+  <script type="text/javascript" src="d3/d3.js"></script>
   <style type="text/css">
 
   /*polygon {
-    fill: blue ;
-    stroke: green ;
+  fill: blue ;
+  stroke: green ;
   }*/
   /*polygon:hover {
-    fill: orange;
+  fill: orange;
   }*/
 
-</style>
+  </style>
 </head>
 
 <body>
@@ -23,37 +23,55 @@
   var brainMapDiv = d3.selectAll("body")
   .append("div");
 
+  var svgNode ;
+
+  // Load svg
   d3.xml("FlatBrainLateralMedialNoAI.svg", function(error, documentFragment) {
     if (error) {console.log(error); return;}
+    // Load data for findings from each area
+    d3.csv("wm_AreaFindings.csv",function(resultsByArea){
 
-    var svgNode = documentFragment
-    .getElementsByTagName("svg")[0];
+      //Assign svg node to variable
+      svgNode = documentFragment
+      .getElementsByTagName("svg")[0];
+      // Append svg node to brainMapDiv
+      brainMapDiv.node().appendChild(svgNode);
+      window.brainMapSVG = brainMapDiv.selectAll("svg") ;
+      //b.split(',').map(e => parseInt(e))
 
-    brainMapDiv.node().appendChild(svgNode);
+      // Array of area names from SVG
+      window.svgAreaNames = Array() ;
+      brainMapSVG.selectAll("g").each( function(d, i){
+        svgAreaNames[i] = d3.select(this).attr("id").split('_')[1];
+      })
 
-    window.brainMapSVG = brainMapDiv.selectAll("svg") ;
-
-    // Change color of area on mouseover. Area might be represented in multiple
-    // polygons within a single group, thus behavior should be applied to all
-    // group
-    brainMapSVG.selectAll("g")
+      // Change color of area on mouseover and display name of area. Area might be represented in multiple
+      // polygons within a single group, thus behavior should be applied to all
+      // group
+      // <p> that will display area name
+      areaID_display_p = d3.select("body").append("p") ;
+      brainMapSVG.selectAll("g") // Select all groups (areas)
       .selectAll("polygon")
       .on("mouseover", function() {
         // Parent node [ie group] of current polygon
         currentParentNode = d3.select(this).node().parentNode ;
         // Select all polygons in current group and apply fill change
         d3.select(currentParentNode)
-          .selectAll("polygon")
-            .attr("fill","blue") ;
-    })
+        .selectAll("polygon")
+        .attr("fill","blue") ;
+
+        areaID_display_p.text(currentParentNode.getAttribute("id").split('_')[1]) ;
+      })
       .on("mouseout", function(d) {
         currentParentNode = d3.select(this).node().parentNode ;
         // Select all polygons in current group and apply fill change
         d3.select(currentParentNode)
-          .selectAll("polygon")
-          .transition()
-          .duration(250)
-          .attr("fill", "#C4C4C4");
+        .selectAll("polygon")
+        .transition()
+        .duration(250)
+        .attr("fill", "#C4C4C4");
+        areaID_display_p.text("") ;
+      });
     });
   });
 
