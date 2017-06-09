@@ -1,0 +1,26 @@
+/* TODO: global styling reset */
+
+#plots {
+  padding: 20px 10px 5px;
+}
+
+rect,
+line,{
+  shape-rendering: crispEdges;
+}
+
+*{
+  font-family: helvetica;
+}
+
+.barPlot_highlight{
+  fill: white;
+  stroke: none;
+}
+/*polygon {
+fill: blue ;
+stroke: green ;
+}*/
+/*polygon:hover {
+fill: orange;
+}*/
