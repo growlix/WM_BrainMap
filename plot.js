@@ -6,6 +6,10 @@ bar_w = 400; //bar plot width
 brain_bar_space = 125; //Distance between minimum bar plot value and brain edge
 width = brain_w + bar_w + brain_bar_space; //total width of brain + bar plot
 height = d3.max([brain_h, bar_h]); //total height of brain and bar plot
+//Size of text displaying the name of the currently selected area
+brain_area_label_textSize = 21;
+//Text before brain area label
+brain_area_label_prefix = "Area: ";
 //brain map svg brain areas fill color
 brainMap_fillColor = "white";
 //brain map svg brain areas highlight
@@ -42,10 +46,12 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
     resultsByAreaRaw.map(function(row){
       newRow = Object() ;
       newRow.area = row.area ;
+      newRow.positive_findings = row.positive_findings;
       newRow.n_positive_findings =
-        parse_CSV_finding_string(row.positive_finding).length ;
+        parse_CSV_finding_string(row.positive_findings).length ;
       newRow.n_negative_findings =
-        parse_CSV_finding_string(row.negative_finding).length ;
+        parse_CSV_finding_string(row.negative_findings).length ;
+      newRow.negative_findings = row.negative_findings;
       resultsByArea.push(newRow) ;
     }) ;
 
@@ -223,7 +229,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .enter()
       .append("text")
       .text(function(area){
-        return area.area;
+        return area.area.replace(/_/g," ");
       })
       .attr("x",brain_bar_space - 3)
       .attr("y", function(area,i) {
@@ -250,15 +256,17 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .attr("width", bar_w+brain_bar_space)
       .attr("class", function(area){
         return "barPlot_mousecatcher_overlay area_"+ area.area
+      })
+      .attr("id",function(area){
+        return "barPlot_mousecatcher_overlay_area_"+area.area;
       });
 
-    // name of brain area that is being moused over
-    // var current_mouseover_areaName = "";
     // <p> that will display name of current brain area being moused over
     var brainArea_label_p = d3.select("body")
       .append("p")
       .attr("align","center")
-      .attr("id","brain_area_label");
+      .attr("id","brain_area_label")
+      .style("font-size",brain_area_label_textSize+"px");
     // Mouseover/mouseout behavior for brain areas in brain map svg
     brainMapSVG.selectAll("g")
       .selectAll("polygon")
@@ -273,7 +281,8 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         highlight_barPlot_area(current_mouseover_areaName,
           barPlot_highlightColor,"on");
         //Update brain area label text
-        brainArea_label_p.text(current_mouseover_areaName);
+        brainArea_label_p.text(brain_area_label_prefix +
+          current_mouseover_areaName.replace(/_/g," "));
       })
       .on("mouseout", function() {
         //Parent node of (i.e. group containing) current polygon being moused over
@@ -305,7 +314,8 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         highlight_barPlot_area(current_mouseover_areaName,
           barPlot_highlightColor,"on");
         //Update brain area label text
-        brainArea_label_p.text(current_mouseover_areaName);
+        brainArea_label_p.text(brain_area_label_prefix +
+          current_mouseover_areaName.replace(/_/g," "));
       })
       .on("mouseout", function() {
         // Current barplot region being moused over
@@ -341,8 +351,7 @@ function parse_CSV_finding_string(finding_string){
 function get_mouseover_areaName_from_brainMapSVG(currentParentNode){
   current_mouseover_areaName = currentParentNode
     .getAttribute("id")
-    .split(/_(.+)/)[1]
-    .replace("_"," ");
+    .split(/_(.+)/)[1];
   return current_mouseover_areaName;
 }
 
