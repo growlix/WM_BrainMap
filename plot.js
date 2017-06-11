@@ -1,60 +1,66 @@
+// Dimensions and layout. Native dimensions of brain map svg are 587h x 447w
+brain_h = 587; //brain map svg height
+brain_w = 447; //brain map svg width
+bar_h = 700; //bar plot height
+bar_w = 400; //bar plot width
+brain_bar_space = 125; //Distance between minimum bar plot value and brain edge
+width = brain_w + bar_w + brain_bar_space; //total width of brain + bar plot
+height = d3.max([brain_h, bar_h]); //total height of brain and bar plot
+//brain map svg brain areas fill color
+brainMap_fillColor = "white";
+//brain map svg brain areas highlight
+brainMap_highlightColor = "rgb(175,175,175)";
+bar_padding = .1; //padding between barplot bars
+barPlot_areaLabel_textSize = 12; //barplot label text size
+//fill color for barplot positive results
+barPlot_positiveResults_fillColor = "red";
+//fill color for barplot negative results
+barPlot_negativeResults_fillColor = "rgb(0,176,240)";
+//bar plot highlight color
+barPlot_highlightColor = "rgb(175,175,175)";
+defaultTransitionDuration = 250; //Default transition animation duration
+//Default delay between sequential animations (used for animating the bar plot)
+defaultTransitionDelay = 15;
 
-// Dimensions and layout. Native dimensions of brain map are 587h x 447w
-brain_h = 587;
-brain_w = 447;
-bar_h = 700;
-bar_w = 400; // Distance from minimum to maximum bar plot value
-brain_bar_space = 125; // Distance between minimum bar plot value and brain edge
-width = brain_w + bar_w + brain_bar_space; // usable width of plot
-height = d3.max([brain_h, bar_h]);
-bar_padding = .1;
-barPlot_areaLabel_textSize = 12;
-barPlot_highlightColor = [230, 230, 230];
-defaultTransitionDuration = 750;
-defaultTransitionDelay = 10;
-// bar_xOffset = brain_w+brain_bar_space;
-
+//Add div #plots that contains brain map and bar plot
 var plots_div = d3.selectAll("body")
-  .append("div")
-  .attr("id", "plots")
-  .attr("align", "center")
-  .style("border-style", "hidden");
+.append("div")
+.attr("id", "plots")
+.attr("align", "center")
+.style("border-style", "hidden");
 
-var brainSVGNode ;
+var brainSVGNode ; //Node that will contain brain map svg
 
 // Load svg
 d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
   if (error) {console.log(error); return;}
-  // Load data for findings from each area
+  // Load data csv containing findings from each area
   d3.csv("WM_AreaFindings_2.csv",function(resultsByAreaRaw){
-    window.resultsByAreaRaw = resultsByAreaRaw;
-    window.resultsByArea = Array() ;
+    // Array that will contain data prased from resultsByAreaRaw
+    resultsByArea = Array() ;
+    // Parse rows from resultsByAreaRaw and add to resultsByArea
     resultsByAreaRaw.map(function(row){
       newRow = Object() ;
       newRow.area = row.area ;
-      newRow.n_positive_findings = parse_CSV_finding_string(row.positive_finding).length ;
-      newRow.n_negative_findings = parse_CSV_finding_string(row.negative_finding).length ;
+      newRow.n_positive_findings =
+        parse_CSV_finding_string(row.positive_finding).length ;
+      newRow.n_negative_findings =
+        parse_CSV_finding_string(row.negative_finding).length ;
       resultsByArea.push(newRow) ;
     }) ;
 
-
     //Assign svg node to variable
     brainSVGNode = documentFragment
-    .getElementsByTagName("svg")[0];
+      .getElementsByTagName("svg")[0];
     brainSVGNode.id = "brain_map";
     // Append svg node to plots_div
     plots_div.node().appendChild(brainSVGNode);
     // Assign selected brain map svg to variable
     window.brainMapSVG = plots_div.select("#brain_map") ;
+    //Set brainMapSVG brain areas fill color
+    brainMapSVG.selectAll("polygon").attr("fill",brainMap_fillColor);
     // Center brain map svg
     brainMapSVG.style("vertical-align",(bar_h-brain_h)/2+"px");
-    // Add top padding
-    // brainMapSVG.attr("transform","translate(0,"+padding_top+")");
-    // // Original dimensions
-    // brain_baseline_h = brainSVGNode.height.baseVal.value;
-    // brain_baseline_w = brainSVGNode.width.baseVal.value;
-
-    //b.split(',').map(e => parseInt(e))
 
     // Array of area names from SVG
     window.svgAreaNames = Array() ;
@@ -62,135 +68,120 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       svgAreaNames[i] = d3.select(this).attr("id").split(/_(.+)/)[1].replace("_"," ");
     }) ;
 
+    // Add #barplots svg to #plots div
     window.barPlot = d3.select("#plots")
-          .append("svg")
-          .attr("id","barplots")
-          .attr("width", bar_w + brain_bar_space)
-          .attr("height", bar_h);
+      .append("svg")
+      .attr("id","barplots")
+      .attr("width", bar_w + brain_bar_space)
+      .attr("height", bar_h);
 
-    //Scales for y and x data (this is going to be a vertically-oriented bar
-    // plot, so independent variable will be on the x-axis)
+    //Scale for y data (this is going to be a vertically-oriented bar
+    // plot, so independent variable (brain area) will be on the y-axis)
     window.yScale = d3.scaleBand()
-    .domain(d3.range(resultsByArea.length))
-    .rangeRound([0, bar_h])
-    .padding([bar_padding]);
+      .domain(d3.range(resultsByArea.length))
+      .rangeRound([0, bar_h])
+      .padding([bar_padding]);
 
-    // Maximum number of positive and negative findings
+    // Maximum number of positive findings across all brain areas
     var max_n_pos_findings = d3.max(resultsByArea,
-      function(d){return d.n_positive_findings;});
+      function(d){
+        return d.n_positive_findings;
+      });
+      // Maximum number of negative findings across all brain areas
     var max_n_neg_findings = d3.max(resultsByArea,
-      function(d){return d.n_negative_findings;});
-
+      function(d){
+        return d.n_negative_findings;
+      });
+    // Scale x data by maximum number of positive + negative findings
     window.xScale = d3.scaleLinear()
-    .domain([0,max_n_pos_findings + max_n_neg_findings])
-    .rangeRound([0, bar_w]);
-
+      .domain([0,max_n_pos_findings + max_n_neg_findings])
+      .rangeRound([0, bar_w]);
+    // x offset for positive findings (i.e. x position of 0 on bar plot x-axis)
     x_offset_positive_findings = xScale(max_n_neg_findings);
 
-    // Draw invisible bars that will sit behind each row of the results bar
-    // plot, which will then be turned visible upon mouseover of the
-    // corresponding area
+    // Highlight selected brain area by drawing invisible bars that sit behind
+    // each row of the bar plot, which will then be turned visible upon
+    // mouseover of the corresponding area
     barPlot_highlight_group = barPlot.append("g")
-    .attr("id","barPlot_highlight");
-    barPlot_highlight_group.selectAll("rect")
-    .data(resultsByArea)
-    .enter()
-    .append("rect")
-    .attr("x",0)
-    .attr("y", function(area,i){
-      return yScale(i);
-    })
-    .attr("height", yScale.bandwidth())
-    .attr("width", bar_w+brain_bar_space)
-    .attr("class", function(area){
-      return "barPlot_highlight area_"+ area.area.toLowerCase()
-    });
+      .attr("id","barPlot_highlight");
+      barPlot_highlight_group.selectAll("rect")
+      .data(resultsByArea)
+      .enter()
+      .append("rect")
+      .attr("x",0)
+      .attr("y", function(area,i){
+        return yScale(i);
+      })
+      .attr("height", yScale.bandwidth())
+      .attr("width", bar_w+brain_bar_space)
+      .attr("class", function(area){
+        return "barPlot_highlight area_"+ area.area.toLowerCase()
+      });
 
     // Create positive result bar plot
     barPlot_positive_group = barPlot.append("g")
-    .attr("id","barPlot_positive_group");
-    // Start with all bars having 0 x value, then update with true value for
-    // dope animation
+      .attr("id","barPlot_positive_group");
+      // Start with all bars having 0 x value, then update with true value for
+      // dope animation
     barPlot_positive_group.selectAll("rect")
-    .data(resultsByArea, function(area){
-      return area.area;
-    })
-    .enter()
-    .append("rect")
-    .attr("x", brain_bar_space + x_offset_positive_findings)
-    .attr("y", function(area,i) {
-      return yScale(i);
-    })
-    .attr("height", yScale.bandwidth())
-    .attr("fill", function(d) {
-        return "red";
-    });
-
-    // Update values
+      .data(resultsByArea, function(area){
+        return area.area;
+      })
+      .enter()
+      .append("rect")
+      .attr("x", brain_bar_space + x_offset_positive_findings)
+      .attr("y", function(area,i) {
+        return yScale(i);
+      })
+      .attr("height", yScale.bandwidth())
+      .attr("fill", barPlot_positiveResults_fillColor);
+    // Update values for to make animate
     barPlot_positive_group.selectAll("rect")
-    .data(resultsByArea, function(area){
-      return area.area;
-    })
-    .transition()
-    .duration(defaultTransitionDuration)
-    .delay(function(d,i){return i * defaultTransitionDelay})
-    .attr("width", function(d) {
-      return xScale(d.n_positive_findings);
-    })
-
+      .data(resultsByArea, function(area){
+        return area.area;
+      })
+      .transition()
+      .duration(defaultTransitionDuration)
+      .delay(function(d,i){return i * defaultTransitionDelay})
+      .attr("width", function(d) {
+        return xScale(d.n_positive_findings);
+      })
 
     //Create negative results bar plot
     barPlot_negative_group = barPlot.append("g")
-    .attr("id","barPlot_negative_group");
+      .attr("id","barPlot_negative_group");
+    // Start with all bars having 0 x value, then update with true value for
+    // dope animation
     barPlot_negative_group.selectAll("rect")
-    .data(resultsByArea, function(area){
-      return area.area;
-    })
-    .enter()
-    .append("rect")
-    .attr("x", brain_bar_space + x_offset_positive_findings)
-    .attr("y", function(area,i) {
-      return yScale(i);
-    })
-    .attr("height", yScale.bandwidth())
-    .attr("fill", function(d) {
-        return "rgb(0,176,240)";
-    });
-
+      .data(resultsByArea, function(area){
+        return area.area;
+      })
+      .enter()
+      .append("rect")
+      .attr("x", brain_bar_space + x_offset_positive_findings)
+      .attr("y", function(area,i) {
+        return yScale(i);
+      })
+      .attr("height", yScale.bandwidth())
+      .attr("fill",barPlot_negativeResults_fillColor);
+    // Update/animate values
     barPlot_negative_group.selectAll("rect")
-    .data(resultsByArea, function(area){
-      return area.area;
-    })
-    .transition()
-    .duration(defaultTransitionDuration)
-    .delay(function(d,i){return i * defaultTransitionDelay})
-    .attr("x", function(area){
-      return brain_bar_space + x_offset_positive_findings -
-        xScale(area.n_negative_findings);
-    })
-    .attr("width", function(d) {
-      return xScale(d.n_negative_findings);
-    });
+      .data(resultsByArea, function(area){
+        return area.area;
+      })
+      .transition()
+      .duration(defaultTransitionDuration)
+      .delay(function(d,i){return i * defaultTransitionDelay})
+      .attr("x", function(area){
+        return brain_bar_space + x_offset_positive_findings -
+          xScale(area.n_negative_findings);
+      })
+      .attr("width", function(d) {
+        return xScale(d.n_negative_findings);
+      });
 
-
-    // .transition()
-    // .duration(defaultTransitionDuration)
-    // .attr("x", function(area){
-    //   return brain_bar_space + x_offset_positive_findings -
-    //     xScale(area.n_negative_findings);
-    // })
-    // .attr("y", function(area,i) {
-    //   return yScale(i);
-    // })
-    // .attr("height", yScale.bandwidth())
-    // .attr("width", function(d) {
-    //   return xScale(d.n_negative_findings);
-    // })
-    // .attr("fill", function(d) {
-    // 		return "rgb(0,176,240)";
-    // });
-
-    //"tick" lines from bar label to bar
+    //"tick" lines from bar label to bar. Again, draw w/ zero width then update
+    // to animate
     bar_label_lines = barPlot.append("g")
       .attr("id","bar_label_lines");
     bar_label_lines.selectAll("line")
@@ -209,10 +200,10 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       })
       .attr("stroke-width",1)
       .attr("stroke","rgb(198,198,198)");
-
-      bar_label_lines.selectAll("line")
-        .data(resultsByArea, function(area){
-          return area.area;
+    // Update/animate values
+    bar_label_lines.selectAll("line")
+      .data(resultsByArea, function(area){
+        return area.area;
       })
       .transition()
       .duration(defaultTransitionDuration)
@@ -222,7 +213,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
           xScale(area.n_negative_findings);
       });
 
-    //"Bar labels"
+    //Bar plot labels
     bar_labels_text = barPlot.append("g")
       .attr("id","bar_labels");
     bar_labels_text.selectAll("text")
@@ -242,63 +233,99 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .attr("text-anchor","end")
       .attr("alignment-baseline","central")
 
-    /*
-    Code for d3 version 3
-    window.yScale = d3.scale.ordinal()
-    .domain(d3.range(resultsByArea.length))
-    .rangeRoundBands([0, bar_h]);
+    // Draw invisible bars that will sit in front of each row of the results bar
+    // plot, which will detect mouseovers and pass this information to the
+    // highlight bar
+    barPlot_mousecatcher_overlay_group = barPlot.append("g")
+      .attr("id","barPlot_mousecatcher_overlay");
+    barPlot_mousecatcher_overlay_group.selectAll("rect")
+      .data(resultsByArea)
+      .enter()
+      .append("rect")
+      .attr("x",0)
+      .attr("y", function(area,i){
+        return yScale(i);
+      })
+      .attr("height", yScale.bandwidth())
+      .attr("width", bar_w+brain_bar_space)
+      .attr("class", function(area){
+        return "barPlot_mousecatcher_overlay area_"+ area.area
+      });
 
-    window.xScale = d3.scale.linear()
-    .domain([-1.*d3.max(resultsByArea, function(d) { return d.n_negative_findings; }),
-    d3.max(resultsByArea, function(d) { return d.n_positive_findings; })])
-    .range([0, bar_w]);
-    */
-
-    // Change color of area on mouseover and display name of area. Area might be represented in multiple
-    // polygons within a single group, thus behavior should be applied to all
-    // group
-    // <p> that will display area name
-    var current_mouseover_highlight = Object() ;
-    areaID_display_p = d3.select("body").append("p").attr("align","center") ;
-    brainMapSVG.selectAll("g") // Select all groups (areas)
-    .selectAll("polygon")
-    .on("mouseover", function() {
-      // Parent node [ie group] of current polygon
-      currentParentNode = d3.select(this).node().parentNode ;
-      // Select all polygons in current group and apply fill change
-      d3.select(currentParentNode)
+    // name of brain area that is being moused over
+    // var current_mouseover_areaName = "";
+    // <p> that will display name of current brain area being moused over
+    var brainArea_label_p = d3.select("body")
+      .append("p")
+      .attr("align","center")
+      .attr("id","brain_area_label");
+    // Mouseover/mouseout behavior for brain areas in brain map svg
+    brainMapSVG.selectAll("g")
       .selectAll("polygon")
-      .attr("fill","blue") ;
+      .on("mouseover", function(){
+        //Parent node of (i.e. group containing) current polygon being moused over
+        var currentParentNode = d3.select(this).node().parentNode;
+        //Get name of current area being moused over
+        var current_mouseover_areaName = get_mouseover_areaName_from_brainMapSVG(currentParentNode);
+        //Highlight brain area in brain map
+        highlight_brainMapSVG_area(currentParentNode,brainMap_highlightColor,"on");
+        //Highlight brain area in bar plot
+        highlight_barPlot_area(current_mouseover_areaName,
+          barPlot_highlightColor,"on");
+        //Update brain area label text
+        brainArea_label_p.text(current_mouseover_areaName);
+      })
+      .on("mouseout", function() {
+        //Parent node of (i.e. group containing) current polygon being moused over
+        var currentParentNode = d3.select(this).node().parentNode;
+        //Get name of current area being moused over
+        var current_mouseover_areaName = get_mouseover_areaName_from_brainMapSVG(currentParentNode);
+        //Unhighlight brain area in brain map
+        highlight_brainMapSVG_area(currentParentNode,brainMap_fillColor,"off");
+        //Unhighlight brain area in bar plot
+        highlight_barPlot_area(current_mouseover_areaName,"white","off");
+        //Clear brain area label text
+        brainArea_label_p.text("");
+      });
 
-      mouseover_area_name = currentParentNode.getAttribute("id")
-        .split(/_(.+)/)[1]
-        .replace("_"," ");
-
-      current_mouseover_highlight = d3.selectAll(".barPlot_highlight")
-        .filter(".area_"+mouseover_area_name.toLowerCase())
-        .style("fill","rgb("+barPlot_highlightColor+")")
-        // .style("stroke","gray");
-
-      areaID_display_p.text(mouseover_area_name);
-    })
-    .on("mouseout", function(d) {
-      current_mouseover_highlight
-      .transition()
-      .duration(250)
-      .style("fill","white")
-      // .style("stroke","none");
-
-      currentParentNode = d3.select(this).node().parentNode ;
-      // Select all polygons in current group and apply fill change
-      d3.select(currentParentNode)
-      .selectAll("polygon")
-      .transition()
-      .duration(250)
-      .attr("fill", "#C4C4C4");
-      areaID_display_p.text("") ;
-    });
+    // Mouseover/mouseout behavior for brain areas in bar plot
+    barPlot_mousecatcher_overlay_group.selectAll("rect")
+      .on("mouseover",function(){
+        // Current barplot region being moused over
+        var current_mouseover_bar = d3.select(this);
+        // Get name of brain area in current moused over barplot region
+        current_mouseover_areaName =
+          current_mouseover_bar.attr("class").split("area_")[1];
+        // Get parent node of corresponding area in brain map svg
+        currentParentNode = brainMapSVG.selectAll("g")
+          .filter("#Group_"+current_mouseover_areaName).node();
+        //Highlight brain area in brain map
+        highlight_brainMapSVG_area(currentParentNode,brainMap_highlightColor,"on");
+        //Highlight brain area in bar plot
+        highlight_barPlot_area(current_mouseover_areaName,
+          barPlot_highlightColor,"on");
+        //Update brain area label text
+        brainArea_label_p.text(current_mouseover_areaName);
+      })
+      .on("mouseout", function() {
+        // Current barplot region being moused over
+        var current_mouseover_bar = d3.select(this);
+        // Get name of brain area in current moused over barplot region
+        current_mouseover_areaName =
+          current_mouseover_bar.attr("class").split("area_")[1];
+        // Get parent node of corresponding area in brain map svg
+        currentParentNode = brainMapSVG.selectAll("g")
+          .filter("#Group_"+current_mouseover_areaName).node();
+        //Highlight brain area in brain map
+        highlight_brainMapSVG_area(currentParentNode,brainMap_fillColor,"off");
+        //Highlight brain area in bar plot
+        highlight_barPlot_area(current_mouseover_areaName,"white","off");
+        //Clear brain area label text
+        brainArea_label_p.text("");
+      });
   });
 });
+
 
 function parse_CSV_finding_string(finding_string){
   finding_array = finding_string.split(",");
@@ -311,7 +338,45 @@ function parse_CSV_finding_string(finding_string){
   return finding_array ;
 }
 
-// function scale_and_translate_in_bounds(original_height,original_width,new_height,
-// new_width){
-//
-// }
+function get_mouseover_areaName_from_brainMapSVG(currentParentNode){
+  current_mouseover_areaName = currentParentNode
+    .getAttribute("id")
+    .split(/_(.+)/)[1]
+    .replace("_"," ");
+  return current_mouseover_areaName;
+}
+
+// Highlights/changes color in brain area svg of current moused over
+// brain area
+function highlight_brainMapSVG_area(currentParentNode,color,onOff) {
+  // Make sure it's legit
+  if ("undefined" != typeof(currentParentNode)){
+    // Select all polygons in current group
+    brainArea_polygons = d3.select(currentParentNode)
+    .selectAll("polygon");
+    // If on, no transition. If off, transition.
+    if (onOff == "on"){
+      brainArea_polygons.attr("fill",color) ;
+    } else if (onOff == "off"){
+      brainArea_polygons.transition()
+        .duration(defaultTransitionDuration)
+        .attr("fill",color) ;
+    }
+  }
+}
+
+// Highlights/changes color in bar plot of current moused over
+// brain area
+function highlight_barPlot_area(current_mouseover_areaName,color,onOff) {
+  // Select bar plot bar
+  barPlot_bar = d3.selectAll(".barPlot_highlight")
+    .filter(".area_"+current_mouseover_areaName.toLowerCase());
+  // If on, no transition. If off, transition.
+  if (onOff == "on"){
+    barPlot_bar.style("fill",color);
+  } else if (onOff == "off"){
+  barPlot_bar.transition()
+    .duration(defaultTransitionDuration)
+    .style("fill","white");
+  }
+}

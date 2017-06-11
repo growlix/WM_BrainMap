@@ -17,6 +17,13 @@ line,{
   fill: white;
   stroke: none;
 }
+
+.barPlot_mousecatcher_overlay{
+  fill: none;
+  stroke: none;
+  pointer-events: all;
+}
+
 /*polygon {
 fill: blue ;
 stroke: green ;
