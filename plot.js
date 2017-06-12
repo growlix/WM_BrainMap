@@ -9,12 +9,14 @@ height = d3.max([brain_h, bar_h]); //total height of brain and bar plot
 //Size of text displaying the name of the currently selected area
 brain_area_label_textSize = 21;
 //Text before brain area label
-brain_area_label_prefix = "Area: ";
+brain_area_label_prefix = "";
 //brain map svg brain areas fill color
 brainMap_fillColor = "white";
 //brain map svg brain areas highlight
 brainMap_highlightColor = "rgb(175,175,175)";
-bar_padding = .1; //padding between barplot bars
+// Padding above bars (for axis)
+barPlot_topPadding = 40;
+bar_padding = .05; //padding between barplot bars
 barPlot_areaLabel_textSize = 12; //barplot label text size
 //fill color for barplot positive results
 barPlot_positiveResults_fillColor = "red";
@@ -85,7 +87,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
     // plot, so independent variable (brain area) will be on the y-axis)
     window.yScale = d3.scaleBand()
       .domain(d3.range(resultsByArea.length))
-      .rangeRound([0, bar_h])
+      .rangeRound([barPlot_topPadding, bar_h])
       .padding([bar_padding]);
 
     // Maximum number of positive findings across all brain areas
@@ -99,11 +101,15 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         return d.n_negative_findings;
       });
     // Scale x data by maximum number of positive + negative findings
-    window.xScale = d3.scaleLinear()
+    window.xScalePositive = d3.scaleLinear()
       .domain([0,max_n_pos_findings + max_n_neg_findings])
       .rangeRound([0, bar_w]);
     // x offset for positive findings (i.e. x position of 0 on bar plot x-axis)
-    x_offset_positive_findings = xScale(max_n_neg_findings);
+    x_offset_positive_findings = xScalePositive(max_n_neg_findings);
+
+    window.xScaleNegative = d3.scaleLinear()
+      .domain([max_n_neg_findings, 0])
+      .rangeRound([0, x_offset_positive_findings]);
 
     // Highlight selected brain area by drawing invisible bars that sit behind
     // each row of the bar plot, which will then be turned visible upon
@@ -150,7 +156,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .duration(defaultTransitionDuration)
       .delay(function(d,i){return i * defaultTransitionDelay})
       .attr("width", function(d) {
-        return xScale(d.n_positive_findings);
+        return xScalePositive(d.n_positive_findings);
       })
 
     //Create negative results bar plot
@@ -179,11 +185,11 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .duration(defaultTransitionDuration)
       .delay(function(d,i){return i * defaultTransitionDelay})
       .attr("x", function(area){
-        return brain_bar_space + x_offset_positive_findings -
-          xScale(area.n_negative_findings);
+        return brain_bar_space +
+          xScaleNegative(area.n_negative_findings);
       })
-      .attr("width", function(d) {
-        return xScale(d.n_negative_findings);
+      .attr("width", function(area) {
+        return x_offset_positive_findings-xScaleNegative(area.n_negative_findings);
       });
 
     //"tick" lines from bar label to bar. Again, draw w/ zero width then update
@@ -216,7 +222,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .delay(function(d,i){return i * defaultTransitionDelay})
       .attr("x2",function(area){
         return brain_bar_space + x_offset_positive_findings -
-          xScale(area.n_negative_findings);
+          xScalePositive(area.n_negative_findings);
       });
 
     //Bar plot labels
@@ -231,13 +237,83 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .text(function(area){
         return area.area.replace(/_/g," ");
       })
-      .attr("x",brain_bar_space - 3)
+      .attr("x",brain_bar_space - 5)
       .attr("y", function(area,i) {
         return yScale(i) + yScale.bandwidth()/2;
       })
       .attr("font-size",barPlot_areaLabel_textSize)
       .attr("text-anchor","end")
       .attr("alignment-baseline","central")
+
+    // Define positive portion of x axis
+    var xAxisPositive = d3.axisTop(xScalePositive).tickSizeOuter(0);
+    barPlot.append("g")
+      .attr("id","xAxisPositive")
+      .attr("class","axis")
+      .attr("transform","translate(" + (brain_bar_space + x_offset_positive_findings) +
+        "," + barPlot_topPadding + ")")
+      .call(xAxisPositive);
+
+    //Define negative portion of x axis
+    var xAxisNegative = d3.axisTop(xScaleNegative).ticks(1).tickSizeOuter(0);
+    barPlot.append("g")
+      .attr("id","xAxisNegative")
+      .attr("class","axis")
+      .attr("transform","translate(" + brain_bar_space +
+        "," + barPlot_topPadding + ")")
+      .call(xAxisNegative);
+
+    // Remove zero tick on x axes
+    d3.selectAll(".tick")
+      .filter(function (d) { return d == 0;  }).remove()
+
+    // Label axes
+    positive_findings_axis_label = d3.select("#barplots")
+      .append("text")
+      .attr("id","barplot_positive_findings_label")
+      .attr("class","axis_label positive");
+      // .attr("font-size",10);
+    positive_findings_axis_label.append("tspan")
+      .text("results")
+      .attr("x",brain_bar_space+x_offset_positive_findings+2)
+      .attr("y",barPlot_topPadding-5);
+    positive_findings_axis_label.append("tspan")
+      .text("positive")
+      .attr("x",brain_bar_space+x_offset_positive_findings+2)
+      .attr("dy","-1em");
+
+    negative_findings_axis_label = d3.select("#barplots")
+      .append("text")
+      .attr("id","barplot_negative_findings_label")
+      .attr("class","axis_label negative");
+    negative_findings_axis_label.append("tspan")
+      .text("results")
+      .attr("x",brain_bar_space+x_offset_positive_findings-2)
+      .attr("y",barPlot_topPadding-5)
+      .attr("text-anchor","end");
+    negative_findings_axis_label.append("tspan")
+      .text("negative")
+      .attr("x",brain_bar_space+x_offset_positive_findings-2)
+      .attr("dy","-1em")
+      .attr("text-anchor","end");
+
+    number_of_studies_axis_label = d3.select("#barplots")
+      .append("text")
+      .text("# studies reporting")
+      .attr("id","number_of_studies_axis_label")
+      .attr("text-anchor","middle")
+      .attr("font-size",14)
+      .attr("x",brain_bar_space+x_offset_positive_findings)
+      .attr("y",barPlot_topPadding/4);
+
+    brain_areas_axis_label = d3.select("#barplots")
+      .append("text")
+      .text("Brain area")
+      .attr("id","Brain_areas_axis_label")
+      .attr("text-anchor","end")
+      .attr("font-size",14)
+      .attr("x",brain_bar_space-20)
+      .attr("y",barPlot_topPadding);
 
     // Draw invisible bars that will sit in front of each row of the results bar
     // plot, which will detect mouseovers and pass this information to the

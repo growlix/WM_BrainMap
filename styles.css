@@ -24,6 +24,44 @@ line,{
   pointer-events: all;
 }
 
+#xAxisPositive line{
+  stroke: red;
+}
+
+#xAxisPositive path{
+  stroke: red;
+}
+
+#xAxisPositive text{
+  fill: red;
+  font-size: 12px;
+}
+
+#xAxisNegative line{
+  stroke: rgb(0,176,240);
+}
+
+#xAxisNegative path{
+  stroke: rgb(0,176,240);
+}
+
+#xAxisNegative text{
+  fill: rgb(0,176,240);
+  font-size: 12px;
+}
+
+.axis_label{
+  font-size: 10px;
+}
+
+.positive.axis_label {
+  fill: red;
+}
+
+.negative.axis_label {
+  fill: rgb(0,176,240);
+}
+
 /*polygon {
 fill: blue ;
 stroke: green ;
