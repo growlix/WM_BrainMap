@@ -24,9 +24,10 @@ barPlot_positiveResults_fillColor = "red";
 barPlot_negativeResults_fillColor = "rgb(0,176,240)";
 //bar plot highlight color
 barPlot_highlightColor = "rgb(175,175,175)";
-defaultTransitionDuration = 250; //Default transition animation duration
+highlight_transition_duration = 250;
+startup_transition_duration = 500;
 //Default delay between sequential animations (used for animating the bar plot)
-defaultTransitionDelay = 15;
+defaultTransitionDelay = 20;
 
 //Add div #plots that contains brain map and bar plot
 var plots_div = d3.selectAll("body")
@@ -153,7 +154,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         return area.area;
       })
       .transition()
-      .duration(defaultTransitionDuration)
+      .duration(startup_transition_duration)
       .delay(function(d,i){return i * defaultTransitionDelay})
       .attr("width", function(d) {
         return xScalePositive(d.n_positive_findings);
@@ -182,7 +183,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         return area.area;
       })
       .transition()
-      .duration(defaultTransitionDuration)
+      .duration(startup_transition_duration)
       .delay(function(d,i){return i * defaultTransitionDelay})
       .attr("x", function(area){
         return brain_bar_space +
@@ -218,7 +219,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         return area.area;
       })
       .transition()
-      .duration(defaultTransitionDuration)
+      .duration(startup_transition_duration)
       .delay(function(d,i){return i * defaultTransitionDelay})
       .attr("x2",function(area){
         return brain_bar_space + x_offset_positive_findings -
@@ -444,7 +445,7 @@ function highlight_brainMapSVG_area(currentParentNode,color,onOff) {
       brainArea_polygons.attr("fill",color) ;
     } else if (onOff == "off"){
       brainArea_polygons.transition()
-        .duration(defaultTransitionDuration)
+        .duration(highlight_transition_duration)
         .attr("fill",color) ;
     }
   }
@@ -461,7 +462,7 @@ function highlight_barPlot_area(current_mouseover_areaName,color,onOff) {
     barPlot_bar.style("fill",color);
   } else if (onOff == "off"){
   barPlot_bar.transition()
-    .duration(defaultTransitionDuration)
+    .duration(highlight_transition_duration)
     .style("fill","white");
   }
 }
