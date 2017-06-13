@@ -27,7 +27,7 @@ barPlot_highlightColor = "rgb(175,175,175)";
 highlight_transition_duration = 250;
 startup_transition_duration = 500;
 //Default delay between sequential animations (used for animating the bar plot)
-defaultTransitionDelay = 20;
+defaultTransitionDelay = 15;
 
 //Add div #plots that contains brain map and bar plot
 var plots_div = d3.selectAll("body")
@@ -101,6 +101,11 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       function(d){
         return d.n_negative_findings;
       });
+    // Maximum number of studies in a single areas
+    var max_n_posAndNeg_findings = d3.max(resultsByArea,
+      function(d){
+        return d.positive_findings + d.n_negative_findings;
+      });
     // Scale x data by maximum number of positive + negative findings
     window.xScalePositive = d3.scaleLinear()
       .domain([0,max_n_pos_findings + max_n_neg_findings])
@@ -111,6 +116,36 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
     window.xScaleNegative = d3.scaleLinear()
       .domain([max_n_neg_findings, 0])
       .rangeRound([0, x_offset_positive_findings]);
+
+    max_n_posOrNeg_findings = d3.max([max_n_pos_findings, max_n_neg_findings]);
+    // Create color scale for visualizing evidence on brain map
+    brainMap_positive_negative_evidence_difference_colorScale = d3.scaleLinear()
+      .domain([-1*max_n_neg_findings, max_n_pos_findings])
+      .interpolate(d3.interpolateHsl)
+      .range([d3.rgb(barPlot_negativeResults_fillColor),
+        d3.rgb(barPlot_positiveResults_fillColor)]);
+
+    resultsByArea.map(function(areaResults){
+      areaName = areaResults.area;
+      n_positive_findings = areaResults.n_positive_findings;
+      n_negative_findings = areaResults.n_negative_findings;
+      findingDifference = n_positive_findings - n_negative_findings;
+      nFindings = n_positive_findings + n_negative_findings;
+      areaColor = brainMap_evidence_color(
+        brainMap_positive_negative_evidence_difference_colorScale(findingDifference),
+          nFindings,max_n_posOrNeg_findings);
+      brainAreaPolygons = brainMapSVG.selectAll("#Group_" + areaName)
+        .selectAll("polygon");
+      if (!brainAreaPolygons.empty()){
+        brainAreaPolygons.attr("fill",areaColor);
+      }
+    });
+
+    // brainMapSVG.selectAll("g").each(function(d,i){
+    //   brainMap_areaName = console.log(d3.select(this).attr("id"));
+    //
+    //   d3.select(this).selectAll("polygon");
+    // });
 
     // Highlight selected brain area by drawing invisible bars that sit behind
     // each row of the bar plot, which will then be turned visible upon
@@ -432,6 +467,20 @@ function get_mouseover_areaName_from_brainMapSVG(currentParentNode){
   return current_mouseover_areaName;
 }
 
+// Takes the color output from brainMap_positive_negative_evidence_difference_colorScale and
+// adjusts the lightness to represent the number of studies used to determine
+// the ratio of positive to negative findings. Lightness approaches 1 (i.e.
+// color approaches white) as number of studies approaches 0.
+function brainMap_evidence_color(differenceColor,nStudies,max_nStudies){
+  differenceColor_hsl = d3.hsl(differenceColor);
+  lightness_scale = d3.scaleLinear()
+    .domain([0, max_nStudies])
+    .interpolate(d3.interpolateHsl)
+    .range([d3.hsl(differenceColor_hsl.h, differenceColor_hsl.s, 1),
+      differenceColor_hsl]);
+  return lightness_scale(nStudies);
+}
+
 // Highlights/changes color in brain area svg of current moused over
 // brain area
 function highlight_brainMapSVG_area(currentParentNode,color,onOff) {
@@ -442,11 +491,14 @@ function highlight_brainMapSVG_area(currentParentNode,color,onOff) {
     .selectAll("polygon");
     // If on, no transition. If off, transition.
     if (onOff == "on"){
-      brainArea_polygons.attr("fill",color) ;
+      // brainArea_polygons.attr("fill",color) ;
+      brainArea_polygons.attr("stroke-width",3) ;
+      // brainArea_polygons.moveToFront();
     } else if (onOff == "off"){
       brainArea_polygons.transition()
         .duration(highlight_transition_duration)
-        .attr("fill",color) ;
+        // .attr("fill",color) ;
+        brainArea_polygons.attr("stroke-width",1) ;
     }
   }
 }
