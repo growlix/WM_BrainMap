@@ -14,6 +14,10 @@ brain_area_label_prefix = "";
 brainMap_fillColor = "white";
 //brain map svg brain areas highlight
 brainMap_highlightColor = "rgb(175,175,175)";
+// how should the lightness of the brain map areas be weighted based on # studies,
+// which is to say how close to white should low-evidence areas be? 1 = maximum
+// (i.e. very close to white), .5 ~= no shading based on evidence. Recommend .97
+brainMap_lightness_weight = .97;
 // Padding above bars (for axis)
 barPlot_topPadding = 40;
 bar_padding = .05; //padding between barplot bars
@@ -37,24 +41,25 @@ var plots_div = d3.selectAll("body")
 .style("border-style", "hidden");
 
 var brainSVGNode ; //Node that will contain brain map svg
-
 // Load svg
 d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
   if (error) {console.log(error); return;}
   // Load data csv containing findings from each area
   d3.csv("WM_AreaFindings_2.csv",function(resultsByAreaRaw){
+    if (error) {console.log(error); return;}
+      d3.csv("WM_References.csv",function(references){
     // Array that will contain data prased from resultsByAreaRaw
     resultsByArea = Array() ;
     // Parse rows from resultsByAreaRaw and add to resultsByArea
     resultsByAreaRaw.map(function(row){
       newRow = Object() ;
       newRow.area = row.area ;
-      newRow.positive_findings = row.positive_findings;
+      newRow.positive_findings = parse_CSV_finding_string(row.positive_findings);
+      newRow.negative_findings = parse_CSV_finding_string(row.negative_findings);
       newRow.n_positive_findings =
         parse_CSV_finding_string(row.positive_findings).length ;
       newRow.n_negative_findings =
         parse_CSV_finding_string(row.negative_findings).length ;
-      newRow.negative_findings = row.negative_findings;
       resultsByArea.push(newRow) ;
     }) ;
 
@@ -104,7 +109,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
     // Maximum number of studies in a single areas
     var max_n_posAndNeg_findings = d3.max(resultsByArea,
       function(d){
-        return d.positive_findings + d.n_negative_findings;
+        return d.n_positive_findings + d.n_negative_findings;
       });
     // Scale x data by maximum number of positive + negative findings
     window.xScalePositive = d3.scaleLinear()
@@ -119,8 +124,8 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
 
     max_n_posOrNeg_findings = d3.max([max_n_pos_findings, max_n_neg_findings]);
     // Create color scale for visualizing evidence on brain map
-    brainMap_positive_negative_evidence_difference_colorScale = d3.scaleLinear()
-      .domain([-1*max_n_neg_findings, max_n_pos_findings])
+    brainMap_positive_finding_index_colorScale = d3.scaleLinear()
+      .domain([0, 1])
       .interpolate(d3.interpolateHsl)
       .range([d3.rgb(barPlot_negativeResults_fillColor),
         d3.rgb(barPlot_positiveResults_fillColor)]);
@@ -129,11 +134,11 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       areaName = areaResults.area;
       n_positive_findings = areaResults.n_positive_findings;
       n_negative_findings = areaResults.n_negative_findings;
-      findingDifference = n_positive_findings - n_negative_findings;
       nFindings = n_positive_findings + n_negative_findings;
+      positive_finding_index = n_positive_findings / nFindings;
       areaColor = brainMap_evidence_color(
-        brainMap_positive_negative_evidence_difference_colorScale(findingDifference),
-          nFindings,max_n_posOrNeg_findings);
+        brainMap_positive_finding_index_colorScale(positive_finding_index),
+          nFindings,max_n_posAndNeg_findings);
       brainAreaPolygons = brainMapSVG.selectAll("#Group_" + areaName)
         .selectAll("polygon");
       if (!brainAreaPolygons.empty()){
@@ -141,11 +146,31 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       }
     });
 
-    // brainMapSVG.selectAll("g").each(function(d,i){
-    //   brainMap_areaName = console.log(d3.select(this).attr("id"));
-    //
-    //   d3.select(this).selectAll("polygon");
-    // });
+
+  //   // Brainmap Legend
+  //   brainArea_evidenceLegend_width = 200;
+  //   brainArea_evidenceLegend = d3.select("body").append("svg")
+  //     .attr("width",brainArea_evidenceLegend_width)
+  //     .attr("height",brainArea_evidenceLegend_width);
+  //
+  //   brainMap_positive_finding_index_colorScale = d3.scaleLinear()
+  //     .domain([0, 1])
+  //     .interpolate(d3.interpolateHsl)
+  //     .range([d3.rgb(barPlot_negativeResults_fillColor),
+  //       d3.rgb(barPlot_positiveResults_fillColor)]);
+  //
+  //   body = d3.select("body"),
+  //   length = 100,
+  //   color = d3.scaleLinear().domain([1,length])
+  //     .interpolate(d3.interpolateHsl)
+  //     .range([d3.rgb("red"), d3.rgb(0, 176, 240)]);
+  //
+  //
+  // for (var i = 0; i < length; i++) {
+  //   brop.append("rect").attr("height","30px").attr("width","29px").attr("x",i*35).attr('style', function (d) {
+  //     return 'fill: ' + color(i);
+  //   });
+  // }
 
     // Highlight selected brain area by drawing invisible bars that sit behind
     // each row of the bar plot, which will then be turned visible upon
@@ -352,13 +377,16 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .attr("y",barPlot_topPadding);
 
     // Draw invisible bars that will sit in front of each row of the results bar
-    // plot, which will detect mouseovers and pass this information to the
-    // highlight bar
+    // plot, which will detect mouseovers and mouse clicks
     barPlot_mousecatcher_overlay_group = barPlot.append("g")
       .attr("id","barPlot_mousecatcher_overlay");
     barPlot_mousecatcher_overlay_group.selectAll("rect")
       .data(resultsByArea)
       .enter()
+      .append("a")
+      .attr("xlink:href",function(area){
+        return "#refs_area_"+ area.area
+      })
       .append("rect")
       .attr("x",0)
       .attr("y", function(area,i){
@@ -371,14 +399,125 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       })
       .attr("id",function(area){
         return "barPlot_mousecatcher_overlay_area_"+area.area;
-      });
+      })
+
 
     // <p> that will display name of current brain area being moused over
     var brainArea_label_p = d3.select("body")
       .append("p")
       .attr("align","center")
       .attr("id","brain_area_label")
+      .style("min-height","30px")
       .style("font-size",brain_area_label_textSize+"px");
+
+    // Div for references section
+    references_div = d3.select("body")
+      .append("div")
+      .attr("id","references_section");
+    // Heading for references section
+    references_div.append("h1")
+      .text("References");
+    // Create div and heading for each brain area
+    references_area_divs = references_div.selectAll("div")
+      .data(resultsByArea)
+      .enter()
+      .append("div")
+      .attr("id",function(d){return "refs_area_" + d.area.replace(/_/g," ")})
+      .attr("class","reference_subsection_div");
+    references_area_divs.append("h2")
+      .text(function(d){return "Area: " + d.area.replace(/_/g," ")});
+
+    // Create div for positive findings in each brain area
+    references_area_positive_finding_divs = references_area_divs.append("div")
+      .attr("id",function(d){return "refs_area_" + d.area.replace(/_/g," ") +
+      "_positive_findings"})
+    // Create subheading and populate positive findings
+    references_area_positive_finding_divs.each(function(d){
+      curr_area_div = d3.select(this); // Current area div
+      // Append subheading that lists number of findigns and accounts for
+      // pluralization of "finding"/"findings"
+      if (d.n_positive_findings == 1){
+        curr_area_div.append("h3")
+          .text(d.n_positive_findings + " positive finding")
+      } else{
+        curr_area_div.append("h3")
+          .text(d.n_positive_findings + " positive findings")
+      }
+      // Append references
+      if (d.positive_findings.length == 0){
+        curr_area_div.append("p").text("-");
+      } else {
+      curr_area_div.selectAll("p")
+        .data(d.positive_findings)
+        .enter()
+        .append("p")
+        .text(function(refN){return references[refN-1].title})
+      }
+    })
+
+    // Create div for negative findings in each brain area
+    references_area_negative_finding_divs = references_area_divs.append("div")
+      .attr("id",function(d){return "refs_area_" + d.area.replace(/_/g," ") +
+      "_negative_findings"})
+    // Create subheading and populate negative findings
+    references_area_negative_finding_divs.each(function(d){
+      curr_area_div = d3.select(this); // Current area div
+      // Append subheading that lists number of findigns and accounts for
+      // pluralization of "finding"/"findings"
+      if (d.n_negative_findings == 1){
+        curr_area_div.append("h3")
+          .text(d.n_negative_findings + " negative finding")
+      } else{
+        curr_area_div.append("h3")
+          .text(d.n_negative_findings + " negative findings")
+      }
+      // Append references
+      if (d.n_negative_findings == 0){
+        curr_area_div.append("p").text("-");
+      } else {
+      curr_area_div.selectAll("p")
+        .data(d.negative_findings)
+        .enter()
+        .append("p")
+        .text(function(refN){return references[refN-1].title})
+      }
+    })
+    //
+    // references_area_divs.each(function(area_results){
+    //   curr_ref_div = d3.select(this);
+    //   curr_ref_div.append("h2")
+    //     .text(function(d){return d.area.replace(/_/g," ")});
+    //   curr_ref_div.append("h3")
+    //     .text("Positive findings")
+    //     .style("color",barPlot_positiveResults_fillColor);
+    //   curr_ref_div.data(area_results.positive_findings)
+    //     .enter()
+    //     .append("p")
+    //     .text("brap")
+    //   curr_ref_div.append("h3")
+    //     .text("Negative findings")
+    //     .style("color",barPlot_negativeResults_fillColor);
+    //   curr_ref_div.data(area_results.negative_findings)
+    //     .enter()
+    //     .append("p")
+    //     .text("brap")
+    // })
+    // references_area_divs
+    //   .append("h3")
+    //   .text(function(d){return d.area.replace(/_/g," ")});
+    //   .data(d.)
+    //   .append("p")
+    //   .text
+      // .append("p")
+      // .text(function(d){
+      //   return d.positive_findings + " " + d.negative_findings;
+      // });
+
+      brainMapSVG.selectAll("g").each( function(d, i){
+        svgAreaNames[i] = d3.select(this).attr("id").split(/_(.+)/)[1].replace("_"," ");
+      }) ;
+
+
     // Mouseover/mouseout behavior for brain areas in brain map svg
     brainMapSVG.selectAll("g")
       .selectAll("polygon")
@@ -395,6 +534,8 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         //Update brain area label text
         brainArea_label_p.text(brain_area_label_prefix +
           current_mouseover_areaName.replace(/_/g," "));
+
+        // d3.select(this)append("a").attr("xlink:href",current_mouseover_areaName+"#refs_area_");
       })
       .on("mouseout", function() {
         //Parent node of (i.e. group containing) current polygon being moused over
@@ -406,8 +547,8 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         //Unhighlight brain area in bar plot
         highlight_barPlot_area(current_mouseover_areaName,"white","off");
         //Clear brain area label text
-        brainArea_label_p.text("");
-      });
+        brainArea_label_p.text(" ");
+      })
 
     // Mouseover/mouseout behavior for brain areas in bar plot
     barPlot_mousecatcher_overlay_group.selectAll("rect")
@@ -443,11 +584,11 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         //Highlight brain area in bar plot
         highlight_barPlot_area(current_mouseover_areaName,"white","off");
         //Clear brain area label text
-        brainArea_label_p.text("");
+        brainArea_label_p.text(" ");
       });
   });
 });
-
+});
 
 function parse_CSV_finding_string(finding_string){
   finding_array = finding_string.split(",");
@@ -476,7 +617,8 @@ function brainMap_evidence_color(differenceColor,nStudies,max_nStudies){
   lightness_scale = d3.scaleLinear()
     .domain([0, max_nStudies])
     .interpolate(d3.interpolateHsl)
-    .range([d3.hsl(differenceColor_hsl.h, differenceColor_hsl.s, 1),
+    .range([d3.hsl(differenceColor_hsl.h, differenceColor_hsl.s,
+      brainMap_lightness_weight),
       differenceColor_hsl]);
   return lightness_scale(nStudies);
 }
