@@ -25,7 +25,7 @@ barPlot_areaLabel_textSize = 12; //barplot label text size
 //fill color for barplot positive results
 barPlot_positiveResults_fillColor = "red";
 //fill color for barplot negative results
-barPlot_negativeResults_fillColor = "blue";
+barPlot_negativeResults_fillColor = "rgb(0,176,240)";
 //bar plot highlight color
 barPlot_highlightColor = "rgb(175,175,175)";
 // Duration of transitions between Highlights
