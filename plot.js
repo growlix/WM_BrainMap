@@ -25,10 +25,12 @@ barPlot_areaLabel_textSize = 12; //barplot label text size
 //fill color for barplot positive results
 barPlot_positiveResults_fillColor = "red";
 //fill color for barplot negative results
-barPlot_negativeResults_fillColor = "rgb(0,176,240)";
+barPlot_negativeResults_fillColor = "blue";
 //bar plot highlight color
 barPlot_highlightColor = "rgb(175,175,175)";
+// Duration of transitions between Highlights
 highlight_transition_duration = 250;
+// Duration of startup animation
 startup_transition_duration = 500;
 //Default delay between sequential animations (used for animating the bar plot)
 defaultTransitionDelay = 15;
