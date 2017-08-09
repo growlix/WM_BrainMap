@@ -47,7 +47,7 @@ var brainSVGNode ; //Node that will contain brain map svg
 d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
   if (error) {console.log(error); return;}
   // Load data csv containing findings from each area
-  d3.csv("WM_AreaFindings_2.csv",function(resultsByAreaRaw){
+  d3.csv("WM_AreaFindings.csv",function(resultsByAreaRaw){
     if (error) {console.log(error); return;}
       d3.csv("WM_References.csv",function(references){
     // Array that will contain data prased from resultsByAreaRaw
@@ -453,7 +453,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         .data(d.positive_findings)
         .enter()
         .append("p")
-        .text(function(refN){return references[refN-1].title})
+        .html(function(refN) {return format_reference_text(references[refN-1])});
       }
     })
 
@@ -481,7 +481,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         .data(d.negative_findings)
         .enter()
         .append("p")
-        .text(function(refN){return references[refN-1].title})
+        .html(function(refN) {return format_reference_text(references[refN-1])});
       }
     })
     //
@@ -661,4 +661,24 @@ function highlight_barPlot_area(current_mouseover_areaName,color,onOff) {
     .duration(highlight_transition_duration)
     .style("fill","white");
   }
+}
+
+// Assembles and formats the fields of a reference into the appropriate display
+// text
+function format_reference_text(current_reference){
+  // Determine if author list contains "et al." and italicize it
+  if (current_reference.authors.includes("et al.")){
+    et_al_start = current_reference.authors.lastIndexOf("et al.");
+    author_string = current_reference.authors.substring(0,et_al_start) +
+      "<em>et al.</em> ";
+  } else {
+    author_string = current_reference.authors + " ";
+  }
+  reference_string = author_string
+    + current_reference.title + " "
+    + "(" + current_reference.date + ") "
+    + "<em>" + current_reference.source + "</em> "
+    + current_reference.additional_info + " "
+    + '<a href= "'+ current_reference.link_pubmed + '">pubmed</a>'
+    return reference_string;
 }
