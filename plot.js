@@ -300,13 +300,13 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .text(function(area){
         return area.area.replace(/_/g," ");
       })
-      .attr("x",brain_bar_space - 5)
+      .attr("x",brain_bar_space - 5 + "px")
       .attr("y", function(area,i) {
-        return yScale(i) + yScale.bandwidth()/2;
+        return yScale(i) + yScale.bandwidth()/2  + "px";
       })
       .attr("font-size",barPlot_areaLabel_textSize)
       .attr("text-anchor","end")
-      .attr("alignment-baseline","central")
+      .style("dominant-baseline","central")
 
     // Define positive portion of x axis
     var xAxisPositive = d3.axisTop(xScalePositive).tickSizeOuter(0);
