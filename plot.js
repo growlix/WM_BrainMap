@@ -403,7 +403,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         return "barPlot_mousecatcher_overlay_area_"+area.area;
       })
       .on("click", function(area) {
-        window.location.assign("/#refs_area_"+area.area)
+        window.location.assign("./#refs_area_"+area.area)
       })
 
 
@@ -527,7 +527,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         var currentParentNode = d3.select(this).node().parentNode;
         //Get name of current area being moused over
         var current_click_areaName = get_mouseover_areaName_from_brainMapSVG(currentParentNode);
-        window.location.assign("/#refs_area_"+current_click_areaName)
+        window.location.assign("./#refs_area_"+current_click_areaName)
       })
 
 
