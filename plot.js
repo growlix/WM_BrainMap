@@ -413,7 +413,8 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .attr("align","center")
       .attr("id","brain_area_label")
       .style("min-height","30px")
-      .style("font-size",brain_area_label_textSize+"px");
+      .style("font-size",brain_area_label_textSize+"px")
+      .style("margin-top","0px");
 
     // Div for references section
     references_div = d3.select("body")
@@ -429,6 +430,9 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .append("div")
       .attr("id",function(d){return "refs_area_" + d.area.replace(/_/g," ")})
       .attr("class","reference_subsection_div");
+    // Add line break before each area in references section except the first
+    d3.selectAll(references_area_divs.nodes().slice(1)).append("br");
+    // Add area name for each section in references
     references_area_divs.append("h2")
       .text(function(d){return "Area: " + d.area.replace(/_/g," ")});
 
