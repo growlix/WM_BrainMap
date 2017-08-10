@@ -385,10 +385,10 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
     barPlot_mousecatcher_overlay_group.selectAll("rect")
       .data(resultsByArea)
       .enter()
-      .append("a")
-      .attr("xlink:href",function(area){
-        return "./#refs_area_"+ area.area
-      })
+      // .append("a")
+      // .attr("xlink:href",function(area){
+      //   return "./#refs_area_"+ area.area
+      // })
       .append("rect")
       .attr("x",0)
       .attr("y", function(area,i){
@@ -401,6 +401,9 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       })
       .attr("id",function(area){
         return "barPlot_mousecatcher_overlay_area_"+area.area;
+      })
+      .on("click", function(area) {
+        window.location.assign("/#refs_area_"+area.area)
       })
 
 
