@@ -484,41 +484,10 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         .html(function(refN) {return format_reference_text(references[refN-1])});
       }
     })
-    //
-    // references_area_divs.each(function(area_results){
-    //   curr_ref_div = d3.select(this);
-    //   curr_ref_div.append("h2")
-    //     .text(function(d){return d.area.replace(/_/g," ")});
-    //   curr_ref_div.append("h3")
-    //     .text("Positive findings")
-    //     .style("color",barPlot_positiveResults_fillColor);
-    //   curr_ref_div.data(area_results.positive_findings)
-    //     .enter()
-    //     .append("p")
-    //     .text("brap")
-    //   curr_ref_div.append("h3")
-    //     .text("Negative findings")
-    //     .style("color",barPlot_negativeResults_fillColor);
-    //   curr_ref_div.data(area_results.negative_findings)
-    //     .enter()
-    //     .append("p")
-    //     .text("brap")
-    // })
-    // references_area_divs
-    //   .append("h3")
-    //   .text(function(d){return d.area.replace(/_/g," ")});
-    //   .data(d.)
-    //   .append("p")
-    //   .text
-      // .append("p")
-      // .text(function(d){
-      //   return d.positive_findings + " " + d.negative_findings;
-      // });
 
       brainMapSVG.selectAll("g").each( function(d, i){
         svgAreaNames[i] = d3.select(this).attr("id").split(/_(.+)/)[1].replace("_"," ");
       }) ;
-
 
     // Mouseover/mouseout behavior for brain areas in brain map svg
     brainMapSVG.selectAll("g")
@@ -536,7 +505,6 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         //Update brain area label text
         brainArea_label_p.text(brain_area_label_prefix +
           current_mouseover_areaName.replace(/_/g," "));
-
         // d3.select(this)append("a").attr("xlink:href",current_mouseover_areaName+"#refs_area_");
       })
       .on("mouseout", function() {
@@ -551,6 +519,14 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         //Clear brain area label text
         brainArea_label_p.text(" ");
       })
+      .on("click", function() {
+        //Parent node of (i.e. group containing) current polygon being clicked on
+        var currentParentNode = d3.select(this).node().parentNode;
+        //Get name of current area being moused over
+        var current_click_areaName = get_mouseover_areaName_from_brainMapSVG(currentParentNode);
+        window.location.assign("#refs_area_"+current_click_areaName)        
+      })
+
 
     // Mouseover/mouseout behavior for brain areas in bar plot
     barPlot_mousecatcher_overlay_group.selectAll("rect")
