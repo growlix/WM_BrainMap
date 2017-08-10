@@ -387,7 +387,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .enter()
       .append("a")
       .attr("xlink:href",function(area){
-        return "/#refs_area_"+ area.area
+        return "./#refs_area_"+ area.area
       })
       .append("rect")
       .attr("x",0)
@@ -524,7 +524,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
         var currentParentNode = d3.select(this).node().parentNode;
         //Get name of current area being moused over
         var current_click_areaName = get_mouseover_areaName_from_brainMapSVG(currentParentNode);
-        window.location.assign("#refs_area_"+current_click_areaName)
+        window.location.assign("/#refs_area_"+current_click_areaName)
       })
 
 
