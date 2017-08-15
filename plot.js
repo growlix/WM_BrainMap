@@ -1,9 +1,9 @@
 // Dimensions and layout. Native dimensions of brain map svg are 587h x 447w
 brain_h = 587; //brain map svg height
 brain_w = 447; //brain map svg width
-bar_h = 700; //bar plot height
+bar_h = 790; //bar plot height
 bar_w = 400; //bar plot width
-brain_bar_space = 125; //Distance between minimum bar plot value and brain edge
+brain_bar_space = 130; //Distance between minimum bar plot value and brain edge
 width = brain_w + bar_w + brain_bar_space; //total width of brain + bar plot
 height = d3.max([brain_h, bar_h]); //total height of brain and bar plot
 //Size of text displaying the name of the currently selected area
@@ -19,9 +19,9 @@ brainMap_highlightColor = "rgb(175,175,175)";
 // (i.e. very close to white), .5 ~= no shading based on evidence. Recommend .97
 brainMap_lightness_weight = .97;
 // Padding above bars (for axis)
-barPlot_topPadding = 40;
+barPlot_topPadding = 55;
 bar_padding = .05; //padding between barplot bars
-barPlot_areaLabel_textSize = 12; //barplot label text size
+barPlot_areaLabel_textSize = 13; //barplot label text size
 //fill color for barplot positive results
 barPlot_positiveResults_fillColor = "red";
 //fill color for barplot negative results
@@ -32,10 +32,10 @@ barPlot_highlightColor = "rgb(175,175,175)";
 highlight_transition_duration = 250;
 // Duration of startup animation
 startup_transition_duration = 500;
-//Default delay between sequential animations (used for animating the bar plot)
+// Default delay between sequential animations (used for animating the bar plot)
 defaultTransitionDelay = 15;
 
-//Add div #plots that contains brain map and bar plot
+// Add div #plots that contains brain map and bar plot
 var plots_div = d3.selectAll("body")
 .append("div")
 .attr("id", "plots")
@@ -339,7 +339,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
     positive_findings_axis_label.append("tspan")
       .text("results")
       .attr("x",brain_bar_space+x_offset_positive_findings+2)
-      .attr("y",barPlot_topPadding-5);
+      .attr("y",barPlot_topPadding-10);
     positive_findings_axis_label.append("tspan")
       .text("positive")
       .attr("x",brain_bar_space+x_offset_positive_findings+2)
@@ -352,7 +352,7 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
     negative_findings_axis_label.append("tspan")
       .text("results")
       .attr("x",brain_bar_space+x_offset_positive_findings-2)
-      .attr("y",barPlot_topPadding-5)
+      .attr("y",barPlot_topPadding-10)
       .attr("text-anchor","end");
     negative_findings_axis_label.append("tspan")
       .text("negative")
@@ -365,7 +365,6 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .text("# studies reporting")
       .attr("id","number_of_studies_axis_label")
       .attr("text-anchor","middle")
-      .attr("font-size",14)
       .attr("x",brain_bar_space+x_offset_positive_findings)
       .attr("y",barPlot_topPadding/4);
 
@@ -374,7 +373,6 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .text("Brain area")
       .attr("id","Brain_areas_axis_label")
       .attr("text-anchor","end")
-      .attr("font-size",14)
       .attr("x",brain_bar_space-20)
       .attr("y",barPlot_topPadding);
 
@@ -415,6 +413,9 @@ d3.xml("FlatBrainLateralMedial_2.svg", function(error, documentFragment) {
       .style("min-height","30px")
       .style("font-size",brain_area_label_textSize+"px")
       .style("margin-top","0px");
+
+    var brainArea_label_display_span = brainMapSVG.append("tspan")
+
 
     // Div for references section
     references_div = d3.select("body")
